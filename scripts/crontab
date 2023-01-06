@@ -1,0 +1,1 @@
+*/2 * * * * /app/scripts/run.sh 2>&1 | tee -a /var/log/gogo-repo-stats.log

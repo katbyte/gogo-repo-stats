@@ -1,0 +1,5 @@
+.DS_Store
+.idea/
+gogo-repo-stats
+*.sqlite3
+*.csv

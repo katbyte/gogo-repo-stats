@@ -1,0 +1,14 @@
+version: "3.6"
+
+services:
+  gogo-repo-stats:
+    image: gogo-repo-stats
+    container_name: gogo-repo-stats
+    environment:
+      - "TZ=America/Vancouver"
+      - "SYNC_CRON=0 0,3,6,9,12,15,18,21 * * *"
+      - "GITHUB_TOKEN="
+      - "GITHUB_ORG=hashicorp"
+      - "GITHUB_REPO=terraform-provider-azurerm"
+      - "GITHUB_PROJECT_NUMBER="
+      - "GITHUB_AUTHORS="
