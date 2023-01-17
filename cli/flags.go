@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -27,7 +28,7 @@ func configureFlags(root *cobra.Command) error {
 	pflags.StringVarP(&flags.Owner, "owner", "", "", "github repo owner, defaults to org (GITHUB_OWNER)")
 	pflags.StringVarP(&flags.Repo, "repo", "r", "", "github repo name (GITHUB_REPO)")
 	pflags.IntVarP(&flags.ProjectNumber, "project-number", "p", 0, "github project number (GITHUB_PROJECT_NUMBER)")
-	pflags.StringSliceVarP(&flags.Authors, "authors", "a", []string{}, "only sync prs by these authors. ie 'katbyte,author2,author3'")
+	pflags.StringSliceVarP(&flags.Authors, "authors", "a", nil, "only sync prs by these authors. ie 'katbyte,author2,author3'")
 	pflags.StringVarP(&flags.CachePath, "cache", "c", "", "path to sqllite3 db to use as cache")
 	// pflags.BoolVarP(&flags.FullFetch, "full", "f", false, "do a full fetch and not abort")
 
@@ -63,6 +64,12 @@ func GetFlags() FlagData {
 		owner = viper.GetString("org")
 	}
 
+	// for some reason we don't get a proper array back from viper for authors so fix it
+	authors := viper.GetStringSlice("authors")
+	if len(authors) != 0 {
+		authors = strings.Split(authors[0], ",")
+	}
+
 	// there has to be an easier way....
 	return FlagData{
 		Token:         viper.GetString("token"),
@@ -70,7 +77,7 @@ func GetFlags() FlagData {
 		Owner:         owner,
 		Repo:          viper.GetString("repo"),
 		ProjectNumber: viper.GetInt("project-number"),
-		Authors:       viper.GetStringSlice("authors"),
+		Authors:       authors,
 		CachePath:     viper.GetString("cache"),
 	}
 }

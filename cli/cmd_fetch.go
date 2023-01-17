@@ -47,24 +47,22 @@ func CmdFetch(cmd *cobra.Command, args []string) error {
 
 			// check cache
 			cpr, err := cache.GetPR(n)
-			if err != nil {
-				return fmt.Errorf("failed to get pr from cache %s/%s/%d: %w", r.Owner, r.Name, n, err)
-			}
+			if err == nil {
+				// if cached && closed (in cache) we have all relevent data
+				if cpr != nil && cpr.State != "open" {
 
-			// if cached && closed (in cache) we have all relevent data
-			if cpr != nil && cpr.State != "open" {
+					// but check events, if zero we likely should get all events again
+					cevents, err := cache.GetEventsForPR(n)
+					if err != nil {
+						return fmt.Errorf("failed to get events from cache %s/%s/%d: %w", r.Owner, r.Name, n, err)
+					}
 
-				// but check events, if zero we likely should get all events again
-				cevents, err := cache.GetEventsForPR(n)
-				if err != nil {
-					return fmt.Errorf("failed to get events from cache %s/%s/%d: %w", r.Owner, r.Name, n, err)
-				}
+					c.Printf(" pr <cyan>#%d</> <darkGray>(%d @ %s)</>: %s\n", n, count, p.GetCreatedAt().Format("2006-01-02"), p.GetTitle())
+					c.Printf("   CACHED! with <green>%d</> events\n", len(cevents))
 
-				c.Printf(" pr <cyan>#%d</> <darkGray>(%d @ %s)</>: %s\n", n, count, p.GetCreatedAt().Format("2006-01-02"), p.GetTitle())
-				c.Printf("   CACHED! with <green>%d</> events\n", len(cevents))
-
-				if len(cevents) != 0 && !full {
-					continue
+					if len(cevents) != 0 && !full {
+						continue
+					}
 				}
 			}
 

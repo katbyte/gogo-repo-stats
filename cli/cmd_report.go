@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	c "github.com/gookit/color"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/katbyte/gogo-repo-stats/lib/cache"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
 // output a report
 //
 // 2022-01
-//   W1  xx/yy open, zz open, zz waiting, zz to first (x greater then 2 weeks)
+//   W1  xx/yy open, zz open, zz waiting, zz to first (x greater than 2 weeks)
 //   W2
 //   W3
 //   W4
@@ -34,14 +35,14 @@ func CmdReport(_ *cobra.Command, args []string) error {
 	to := time.Now()
 
 	aragc := len(args)
-	if aragc == 1 {
+	if aragc > 0 {
 		from, err = time.Parse("2006-01", args[0])
 		if err != nil {
 			return fmt.Errorf("failed to parse time %s : %w", args[0], err)
 		}
 
 		if aragc == 2 {
-			from, err = time.Parse("2006-01", args[1])
+			to, err = time.Parse("2006-01", args[1])
 			if err != nil {
 				return fmt.Errorf("failed to parse time %s : %w", args[1], err)
 			}
@@ -56,8 +57,9 @@ func CmdReport(_ *cobra.Command, args []string) error {
 	defer cache.DB.Close()
 
 	c.Printf("Generating reports forall PRs from <white>%s</> to <white>%s</>...\n", from.Format("2006-01-02"), to.Format("2006-01-02"))
-
-	// todo  look at https://github.com/jedib0t/go-pretty
+	if len(f.Authors) > 0 {
+		c.Printf("  for authors: <green>%s</>\n", strings.Join(f.Authors, "</>, <green>"))
+	}
 
 	// for each month
 	for month := from; month.Before(to); month = month.AddDate(0, 1, 0) {
@@ -68,10 +70,9 @@ func CmdReport(_ *cobra.Command, args []string) error {
 			monthEnd = to
 		}
 
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{month.Format("2006-01"), "Opened", "Open", "Days Open", "Days Wait", "Days First", "First Over"})
-		table.SetBorder(false)
-		table.SetAlignment(1)
+		t := table.NewWriter()
+		t.SetOutputMirror(os.Stdout)
+		t.AppendHeader(table.Row{c.Sprintf("<cyan>%s</>", month.Format("2006-01")), "Opened", "Open", "Days Open", "Days Wait", "Days First", "First Over"})
 
 		n := 0
 		for weekStart := monthStart; weekStart.Before(monthEnd); weekStart = weekStart.AddDate(0, 0, 7) {
@@ -81,38 +82,39 @@ func CmdReport(_ *cobra.Command, args []string) error {
 				weekEnd = monthEnd
 			}
 
-			stats, err := cache.CalculateStatsForDateRange(weekStart, weekEnd)
+			stats, err := cache.CalculatePRStatsForDateRange(weekStart, weekEnd, f.Authors)
 			if err != nil {
 				return fmt.Errorf("failed to query stats: %w", err)
 			}
 
-			table.Append([]string{
-				"W" + strconv.Itoa(n),
+			t.AppendRows([]table.Row{{
+				c.Sprintf("<magenta>W%d</>", n),
 				strconv.Itoa(stats.Total),
 				strconv.Itoa(stats.Open),
-				strconv.FormatFloat(stats.DaysOpenAverage, 'f', 2, 64),
-				strconv.FormatFloat(stats.DaysWaitingAverage, 'f', 2, 64),
-				strconv.FormatFloat(stats.DaysToFirstAverage, 'f', 2, 64),
+				strconv.FormatFloat(stats.DaysOpenAverage.Float64, 'f', 2, 64),
+				strconv.FormatFloat(stats.DaysWaitingAverage.Float64, 'f', 2, 64),
+				strconv.FormatFloat(stats.DaysToFirstAverage.Float64, 'f', 2, 64),
 				strconv.Itoa(stats.DaysToFirstOver),
-			})
+			}})
 		}
 
-		stats, err := cache.CalculateStatsForDateRange(monthStart, monthEnd)
+		stats, err := cache.CalculatePRStatsForDateRange(monthStart, monthEnd, f.Authors)
 		if err != nil {
 			return fmt.Errorf("failed to query stats: %w", err)
 		}
 
-		table.SetFooter([]string{
+		t.AppendSeparator()
+		t.AppendFooter(table.Row{
 			"SUM",
 			strconv.Itoa(stats.Total),
 			strconv.Itoa(stats.Open),
-			strconv.FormatFloat(stats.DaysOpenAverage, 'f', 2, 64),
-			strconv.FormatFloat(stats.DaysWaitingAverage, 'f', 2, 64),
-			strconv.FormatFloat(stats.DaysToFirstAverage, 'f', 2, 64),
+			strconv.FormatFloat(stats.DaysOpenAverage.Float64, 'f', 2, 64),
+			strconv.FormatFloat(stats.DaysWaitingAverage.Float64, 'f', 2, 64),
+			strconv.FormatFloat(stats.DaysToFirstAverage.Float64, 'f', 2, 64),
 			strconv.Itoa(stats.DaysToFirstOver),
 		})
 
-		table.Render() // Send output
+		t.Render() // Send output
 		fmt.Println()
 		fmt.Println()
 	}

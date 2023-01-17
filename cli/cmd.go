@@ -24,7 +24,7 @@ func ValidateParams(params []string) func(cmd *cobra.Command, args []string) err
 }
 
 func Make(cmdName string) (*cobra.Command, error) {
-	// This is a no-op to avoid accidentally triggering broken builds on malformed commands
+	// todo should this be a no-op to avoid accidentally triggering broken builds on malformed commands ?
 	root := &cobra.Command{
 		Use:           cmdName + " [command]",
 		Short:         cmdName + "is a small utility to TODO",
@@ -67,12 +67,9 @@ func Make(cmdName string) (*cobra.Command, error) {
 
 	root.AddCommand(&cobra.Command{
 		Use:           "graphs",
-		Args:          cobra.NoArgs,
+		Args:          cobra.MaximumNArgs(2),
 		SilenceErrors: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			// todo
-			return nil
-		},
+		RunE:          CmdGraphs,
 	})
 
 	// todo emoji stats/counter
