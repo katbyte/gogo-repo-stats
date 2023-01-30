@@ -484,14 +484,12 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 			Left:     "center"}),
 
 		charts.WithXAxisOpts(opts.XAxis{
-			Name:        "Date",
-			MinInterval: 20,
-			MaxInterval: 20,
-			// AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
+			Name:      "Date",
+			AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
-			Name: "PRs",
-			// AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
+			Name:      "PRs",
+			AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:  "1500px",
