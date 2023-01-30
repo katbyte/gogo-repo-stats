@@ -317,11 +317,12 @@ func GraphDailyTotalPRs(cache *cache.Cache, outPath string, from, to time.Time) 
 }
 
 type DayStats struct {
-	Total    int
-	Open     int
-	Blocked  int
-	Waiting  int
-	Approved int
+	Total       int
+	Open        int
+	Blocked     int
+	Waiting     int
+	WaitingOver int
+	Approved    int
 }
 
 func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error {
@@ -338,7 +339,7 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 	// todo just calculate ALL prs and then do a cutoff?
 
 	// get all prs for range
-	prs, err := c.GetPRsForDateRange(from, to)
+	prs, err := c.GetPRsOpenForDateRange(from, to)
 	if err != nil {
 		return fmt.Errorf("getting PRs: %w", err)
 	}
@@ -371,8 +372,13 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 		// by playing back events to "set the state" until the events
 
 		state := "open"
+		daysWaiting := 0
 		eventIndex := 0
 		for day := opened; ; day = day.AddDate(0, 0, 1) {
+			if day.Before(from.AddDate(0, 0, -1)) {
+				continue
+			}
+
 			k := day.Format("2006-01-02")
 
 			d := dates[k]
@@ -391,11 +397,20 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 				} else if e.Event == "unlabeled" && e.Label == "waiting-response" {
 					state = "waiting"
 				}
+
+				if state != "waiting" {
+					daysWaiting = 0
+				}
 			}
 
 			switch state {
 			case "waiting":
-				d.Waiting++
+				daysWaiting++
+				if daysWaiting > 14 {
+					d.WaitingOver++
+				} else {
+					d.Waiting++
+				}
 			case "blocked":
 				d.Blocked++
 			case "approved":
@@ -410,14 +425,18 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 			if !day.Before(closed) {
 				break
 			}
+
+			if day.After(to) {
+				break
+			}
 		}
 
 	}
 
 	var xAxis []string
-	var lineOpen, lineBlocked, lineWaiting []opts.LineData
+	var lineOpen, lineBlocked, lineWaiting, lineWaitingOver []opts.LineData
 
-	data := [][]string{{"date", "total", "open", "blocked", "waiting", "approved"}}
+	data := [][]string{{"date", "total", "open", "blocked", "waiting", "waiting-over", "approved"}}
 
 	days := make([]string, 0, len(dates))
 	for day := range dates {
@@ -427,13 +446,14 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 
 	for _, date := range days {
 		day := dates[date]
-		data = append(data, []string{date, strconv.Itoa(day.Total), strconv.Itoa(day.Open), strconv.Itoa(day.Blocked), strconv.Itoa(day.Waiting), strconv.Itoa(day.Approved)})
+		data = append(data, []string{date, strconv.Itoa(day.Total), strconv.Itoa(day.Open), strconv.Itoa(day.Blocked), strconv.Itoa(day.Waiting), strconv.Itoa(day.WaitingOver), strconv.Itoa(day.Approved)})
 
 		xAxis = append(xAxis, date)
 		// totalLine = append(totalLine, opts.LineData{Value: day.Total})
 		lineOpen = append(lineOpen, opts.LineData{Value: day.Open})
 		lineBlocked = append(lineBlocked, opts.LineData{Value: day.Blocked})
 		lineWaiting = append(lineWaiting, opts.LineData{Value: day.Waiting})
+		lineWaitingOver = append(lineWaitingOver, opts.LineData{Value: day.WaitingOver})
 
 	}
 
@@ -460,7 +480,7 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 		// charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
 		charts.WithTitleOpts(opts.Title{
 			Title:    "PRs Open (daily)",
-			Subtitle: "By State: open, waiting, blocked, approved",
+			Subtitle: "By State: open, waiting, waiting (over 14 days), blocked, approved",
 			Left:     "center"}),
 
 		charts.WithXAxisOpts(opts.XAxis{
@@ -477,6 +497,10 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 		}),
 		charts.WithColorsOpts(opts.Colors{"#C13530", "#2E4555", "#62A0A8"}),
 		charts.WithToolboxOpts(opts.Toolbox{Show: true}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Show: true,
+			// TriggerOn: "mousemove|click",
+		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
@@ -487,6 +511,7 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 	// Put data into instance
 	graph.SetXAxis(xAxis).
 		AddSeries("Blocked", lineBlocked).
+		AddSeries("Waiting Over 14", lineWaitingOver).
 		AddSeries("Waiting", lineWaiting).
 		AddSeries("Open", lineOpen).
 		SetSeriesOptions(charts.WithAreaStyleOpts(opts.AreaStyle{

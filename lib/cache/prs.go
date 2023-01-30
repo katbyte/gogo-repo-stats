@@ -138,10 +138,18 @@ func (cache Cache) GetPRsWithState(state string) (*[]PR, error) {
 	return cache.QueryForPRs("SELECT number, title, user, state, milestone, merged, merger, created, closed, daysopen, dayswaiting, daystofirst FROM prs WHERE state='" + state + "'")
 }
 
-func (cache Cache) GetPRsForDateRange(from, to time.Time) (*[]PR, error) {
+func (cache Cache) GetPRsCreatedForDateRange(from, to time.Time) (*[]PR, error) {
 	return cache.QueryForPRs(fmt.Sprintf(`
 		SELECT number, title, user, state, milestone, merged, merger, created, closed, daysopen, dayswaiting, daystofirst 
 		FROM prs
 		WHERE created BETWEEN '%s' AND '%s'
+	`, from.Format("2006-01-02"), to.Format("2006-01-02")))
+}
+
+func (cache Cache) GetPRsOpenForDateRange(from, to time.Time) (*[]PR, error) {
+	return cache.QueryForPRs(fmt.Sprintf(`
+		SELECT number, title, user, state, milestone, merged, merger, created, closed, daysopen, dayswaiting, daystofirst 
+		FROM prs
+		WHERE created BETWEEN '%[1]s' AND '%[2]s' or closed BETWEEN '%[1]s' AND '%[2]s'
 	`, from.Format("2006-01-02"), to.Format("2006-01-02")))
 }
