@@ -499,6 +499,7 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 		charts.WithToolboxOpts(opts.Toolbox{Show: true}),
 		charts.WithTooltipOpts(opts.Tooltip{
 			Show:      true,
+			Trigger:   "item",
 			TriggerOn: "mousemove|click",
 		}),
 		charts.WithLegendOpts(opts.Legend{
