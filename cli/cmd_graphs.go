@@ -498,8 +498,8 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 		charts.WithColorsOpts(opts.Colors{"#C13530", "#2E4555", "#62A0A8"}),
 		charts.WithToolboxOpts(opts.Toolbox{Show: true}),
 		charts.WithTooltipOpts(opts.Tooltip{
-			Show: true,
-			// TriggerOn: "mousemove|click",
+			Show:      true,
+			TriggerOn: "mousemove|click",
 		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
