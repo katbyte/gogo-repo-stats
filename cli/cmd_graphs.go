@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
-	c "github.com/gookit/color"
+	c "github.com/gookit/color" // nolint:misspell
 	"github.com/katbyte/gogo-repo-stats/lib/cache"
 	"github.com/spf13/cobra"
 )
@@ -64,18 +64,14 @@ func CmdGraphs(_ *cobra.Command, args []string) error {
 	}
 
 	// todo collect these in an array and then do each one in a loop
-	err = GraphsDailyOpenedPRs(cache, outPath, from, to)
-	if err != nil {
+
+	if err = GraphsDailyOpenedPRs(cache, outPath, from, to); err != nil {
 		return fmt.Errorf("failed to generate daily pr graphs path: %w", err)
 	}
-
-	err = GraphDailyTotalPRs(cache, outPath, from, to)
-	if err != nil {
+	if err = GraphDailyTotalPRs(cache, outPath, from, to); err != nil {
 		return fmt.Errorf("failed to generate daily total pr graphs path: %w", err)
 	}
-
-	err = GraphDailyOpenPRs(cache, outPath, from, to)
-	if err != nil {
+	if err = GraphDailyOpenPRs(cache, outPath, from, to); err != nil {
 		return fmt.Errorf("failed to generate daily open pr graphs path: %w", err)
 	}
 
@@ -109,7 +105,8 @@ func GraphsDailyOpenedPRs(cache *cache.Cache, outPath string, from, to time.Time
 		merged = append(merged, opts.BarData{Value: stats.Merged})
 
 		data = append(data,
-			[]string{dayStart.Format("2006-01-02"),
+			[]string{
+				dayStart.Format("2006-01-02"),
 				strconv.Itoa(stats.Total),
 				strconv.Itoa(stats.Merged),
 				strconv.Itoa(stats.Closed - stats.Merged),
@@ -141,7 +138,8 @@ func GraphsDailyOpenedPRs(cache *cache.Cache, outPath string, from, to time.Time
 		charts.WithTitleOpts(opts.Title{
 			Title:    "PRs Opened (daily)",
 			Subtitle: "By Current Status: merged, closed, open",
-			Left:     "center"}),
+			Left:     "center", // nolint:misspell
+		}),
 
 		charts.WithXAxisOpts(opts.XAxis{
 			Name: "Date",
@@ -160,7 +158,7 @@ func GraphsDailyOpenedPRs(cache *cache.Cache, outPath string, from, to time.Time
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
-			Left: "center",
+			Left: "center", // nolint:misspell
 		}),
 	)
 
@@ -235,7 +233,8 @@ func GraphDailyTotalPRs(cache *cache.Cache, outPath string, from, to time.Time) 
 		merged = append(merged, opts.LineData{Value: mergedCount})
 
 		data = append(data,
-			[]string{dayStart.Format("2006-01-02"),
+			[]string{
+				dayStart.Format("2006-01-02"),
 				strconv.Itoa(totalCount),
 				strconv.Itoa(mergedCount),
 				strconv.Itoa(closedCount),
@@ -267,7 +266,8 @@ func GraphDailyTotalPRs(cache *cache.Cache, outPath string, from, to time.Time) 
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Total PRs (daily)",
 			Subtitle: "By Current Status: merged, closed, open",
-			Left:     "center"}),
+			Left:     "center", // nolint:misspell
+		}),
 
 		charts.WithXAxisOpts(opts.XAxis{
 			Name: "Date",
@@ -286,7 +286,7 @@ func GraphDailyTotalPRs(cache *cache.Cache, outPath string, from, to time.Time) 
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
-			Left: "center",
+			Left: "center", // nolint:misspell
 		}),
 	)
 
@@ -388,11 +388,12 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 			for ; eventIndex < len(eventDates) && eventDates[eventIndex].Before(day.AddDate(0, 0, 1)); eventIndex++ {
 				e := eventMap[eventDates[eventIndex]]
 
+				// nolint: gocritic
 				if e.Event == "milestoned" && e.Milestone == "Blocked" {
 					state = "blocked"
 				} else if e.Event == "milestoned" && e.Milestone != "Blocked" && state == "blocked" {
 					state = "waiting"
-				} else if e.Event == "labeled" && e.Label == "waiting-response" {
+				} else if e.Event == "labeled" && e.Label == "waiting-response" { // nolint:misspell
 					state = "open"
 				} else if e.Event == "unlabeled" && e.Label == "waiting-response" {
 					state = "waiting"
@@ -430,7 +431,6 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 				break
 			}
 		}
-
 	}
 
 	var xAxis []string
@@ -454,7 +454,6 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 		lineBlocked = append(lineBlocked, opts.LineData{Value: day.Blocked})
 		lineWaiting = append(lineWaiting, opts.LineData{Value: day.Waiting})
 		lineWaitingOver = append(lineWaitingOver, opts.LineData{Value: day.WaitingOver})
-
 	}
 
 	// write raw data
@@ -481,15 +480,16 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 		charts.WithTitleOpts(opts.Title{
 			Title:    "PRs Open (daily)",
 			Subtitle: "By State: open, waiting, waiting (over 14 days), blocked, approved",
-			Left:     "center"}),
+			Left:     "center", // nolint:misspell
+		}),
 
 		charts.WithXAxisOpts(opts.XAxis{
-			Name:      "Date",
-			AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
+			Name: "Date",
+			// AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
-			Name:      "PRs",
-			AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
+			Name: "PRs",
+			// AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:  "1500px",
@@ -505,7 +505,7 @@ func GraphDailyOpenPRs(c *cache.Cache, outPath string, from, to time.Time) error
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
-			Left: "center",
+			Left: "center", // nolint:misspell
 		}),
 	)
 

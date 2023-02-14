@@ -4,11 +4,9 @@ import (
 	"fmt"
 
 	"github.com/katbyte/gogo-repo-stats/version"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	_ "github.com/mattn/go-sqlite3"
-	//nolint:misspell
 )
 
 func ValidateParams(params []string) func(cmd *cobra.Command, args []string) error {
@@ -32,7 +30,6 @@ func Make(cmdName string) (*cobra.Command, error) {
 		SilenceErrors: true,
 		PreRunE:       ValidateParams([]string{"token", "org", "repo", "cache"}),
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			// f := GetFlags()
 			// r := gh.NewRepo(f.Owner, f.Repo, f.Token)
 

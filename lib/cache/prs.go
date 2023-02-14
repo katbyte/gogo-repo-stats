@@ -56,14 +56,14 @@ func (cache Cache) UpsertPRFromGH(pr *github.PullRequest) error {
 }
 
 func (cache Cache) UpsertPRStats(number int, daysOpen, daysWaiting, daysToFirst float64) error {
-	stmt, err := cache.DB.Prepare(fmt.Sprintf(`
+	stmt, err := cache.DB.Prepare(`
 		UPDATE prs 
 		SET daysopen = ?,
 		    dayswaiting = ?,
 		    daystofirst = ?
 		WHERE
 			number=?;
-	`))
+	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare insert stats statement for pr %d: %w", number, err)
 	}

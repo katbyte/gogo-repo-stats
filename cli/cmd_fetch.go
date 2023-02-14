@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v45/github"
-	c "github.com/gookit/color"
+	c "github.com/gookit/color" // nolint: misspell
 	"github.com/katbyte/gogo-repo-stats/lib/cache"
 	"github.com/katbyte/gogo-repo-stats/lib/gh"
 	"github.com/spf13/cobra"
 )
 
-func CmdFetch(cmd *cobra.Command, args []string) error {
+func CmdFetch(_ *cobra.Command, _ []string) error {
 	f := GetFlags()
 	r := gh.NewRepo(f.Owner, f.Repo, f.Token)
 
@@ -48,9 +48,8 @@ func CmdFetch(cmd *cobra.Command, args []string) error {
 			// check cache
 			cpr, err := cache.GetPR(n)
 			if err == nil {
-				// if cached && closed (in cache) we have all relevent data
+				// if cached && closed (in cache) we have all relevant data
 				if cpr != nil && cpr.State != "open" {
-
 					// but check events, if zero we likely should get all events again
 					cevents, err := cache.GetEventsForPR(n)
 					if err != nil {

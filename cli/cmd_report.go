@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	c "github.com/gookit/color"
+	c "github.com/gookit/color" // nolint:misspell
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/katbyte/gogo-repo-stats/lib/cache"
 	"github.com/spf13/cobra"

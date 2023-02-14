@@ -53,7 +53,7 @@ func (cache Cache) UpsertEvent(pr int, event *github.Timeline) error {
 	// get correct date - createdAt opr SubmittedAt
 	if event.CreatedAt != nil && event.SubmittedAt != nil {
 		if event.GetActor() == event.GetUser() {
-			return fmt.Errorf("both actor and user exist and differ  %d/%s: %s", pr, event.GetURL())
+			return fmt.Errorf("both actor and user exist and differ %d:  %s  == %s", pr, event.GetActor(), event.GetUser())
 		}
 	}
 

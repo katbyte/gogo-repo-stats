@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	c "github.com/gookit/color"
+	c "github.com/gookit/color" // nolint:misspell
 )
 
 type Cache struct {
@@ -14,7 +14,6 @@ type Cache struct {
 }
 
 func Open(path string) (*Cache, error) {
-
 	// exists?
 	if _, err := os.Stat(path); err == nil {
 		c.Printf("Opening <magenta>%s</>...\n", path)
@@ -28,7 +27,10 @@ func Open(path string) (*Cache, error) {
 
 	// create file
 	c.Printf("Creating <magenta>%s</>...\n", path)
-	os.Create(path)
+	_, err := os.Create(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create db %s: %w", path, err)
+	}
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db %s: %w", path, err)
