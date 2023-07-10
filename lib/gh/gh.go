@@ -2,9 +2,12 @@ package gh
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/google/go-github/v45/github"
 	common "github.com/katbyte/gogo-repo-stats/lib/chttp"
+	"github.com/katbyte/gogo-repo-stats/lib/pointer"
 	"golang.org/x/oauth2"
 )
 
@@ -18,10 +21,20 @@ type Repo struct {
 	Token
 }
 
-func NewRepo(owner, repo, token string) Repo {
+func NewRepo(repo, token string) (*Repo, error) {
+	parts := strings.Split(repo, "/")
+
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid repo format, expected owner/name got %q", repo)
+	}
+
+	return pointer.To(NewRepoOwnerName(parts[0], parts[1], token)), nil
+}
+
+func NewRepoOwnerName(owner, name, token string) Repo {
 	r := Repo{
 		Owner: owner,
-		Name:  repo,
+		Name:  name,
 		Token: Token{
 			Token: nil,
 		},

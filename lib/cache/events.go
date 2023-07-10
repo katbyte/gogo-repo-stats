@@ -2,7 +2,6 @@ package cache
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/google/go-github/v45/github"
@@ -16,6 +15,7 @@ import (
 // TODO - table per event type?
 
 type Event struct {
+	Repo  string
 	PR    int
 	Date  time.Time
 	Event string
@@ -29,8 +29,8 @@ type Event struct {
 	URL string
 }
 
-func (cache Cache) UpsertEvent(pr int, event *github.Timeline) error {
-	stmt, err := cache.DB.Prepare("INSERT OR REPLACE INTO events (pr, date, event, user, state, label, milestone, body, url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+func (cache Cache) UpsertEvent(repo string, pr int, event *github.Timeline) error {
+	stmt, err := cache.DB.Prepare("INSERT OR REPLACE INTO events (repo, pr, date, event, user, state, label, milestone, body, url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("failed to prepare insert statement for event %d/%s: %w", pr, event.GetURL(), err)
 	}
@@ -53,7 +53,7 @@ func (cache Cache) UpsertEvent(pr int, event *github.Timeline) error {
 	// get correct date - createdAt opr SubmittedAt
 	if event.CreatedAt != nil && event.SubmittedAt != nil {
 		if event.GetActor() == event.GetUser() {
-			return fmt.Errorf("both actor and user exist and differ  %d/%s: %s", pr, event.GetURL())
+			return fmt.Errorf("both actor and user exist and differ %d:  %s  == %s", pr, event.GetActor(), event.GetUser())
 		}
 	}
 
@@ -66,6 +66,7 @@ func (cache Cache) UpsertEvent(pr int, event *github.Timeline) error {
 	}
 
 	_, err = stmt.Exec(
+		repo,
 		pr,
 		t,
 		event.GetEvent(),
@@ -86,8 +87,14 @@ func (cache Cache) UpsertEvent(pr int, event *github.Timeline) error {
 	return nil
 }
 
-func (cache Cache) GetEventsForPR(number int) ([]Event, error) {
-	rows, err := cache.DB.Query("SELECT pr, date, event, user, state, label, milestone, body, url FROM events WHERE pr='" + strconv.Itoa(number) + "' ORDER BY date")
+func (cache Cache) GetEventsForPR(repo string, number int) ([]Event, error) {
+	rows, err := cache.DB.Query(fmt.Sprintf(`
+		SELECT repo, pr, date, event, user, state, label, milestone, body, url 
+		FROM events 
+		WHERE
+			repo='%s' AND
+		    pr='%d' ORDER BY date
+	`, repo, number))
 	if err != nil {
 		return nil, fmt.Errorf("failed to query events for pr %d: %w", number, err)
 	}
@@ -102,6 +109,7 @@ func (cache Cache) GetEventsForPR(number int) ([]Event, error) {
 	for rows.Next() {
 		e := Event{}
 		err = rows.Scan(
+			&e.Repo,
 			&e.PR,
 			&e.Date,
 			&e.Event,

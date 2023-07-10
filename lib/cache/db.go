@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	c "github.com/gookit/color"
+	c "github.com/gookit/color" // nolint:misspell
 )
 
 type Cache struct {
@@ -14,7 +14,6 @@ type Cache struct {
 }
 
 func Open(path string) (*Cache, error) {
-
 	// exists?
 	if _, err := os.Stat(path); err == nil {
 		c.Printf("Opening <magenta>%s</>...\n", path)
@@ -28,7 +27,10 @@ func Open(path string) (*Cache, error) {
 
 	// create file
 	c.Printf("Creating <magenta>%s</>...\n", path)
-	os.Create(path)
+	_, err := os.Create(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create db %s: %w", path, err)
+	}
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db %s: %w", path, err)
@@ -38,7 +40,8 @@ func Open(path string) (*Cache, error) {
 	c.Printf("  table <white>prs</>...\n")
 	_, err = db.Exec(`
 	CREATE TABLE "prs" (
-	    "number" INTEGER PRIMARY KEY, 
+	    "repo" CHAR(64) NOT NULL, 
+	    "number" INTEGER, 
 	    "title" VARCHAR(256) NOT NULL, 
 	    "user" CHAR(64) NOT NULL, 
 	    "state" CHAR(32) NOT NULL,
@@ -49,7 +52,8 @@ func Open(path string) (*Cache, error) {
 	    "closed" DATE,
 	    "daysopen" REAL,
 	    "dayswaiting" REAL,
-	    "daystofirst" REAL
+	    "daystofirst" REAL,
+	    PRIMARY KEY (repo, number)
 	)
 	`)
 	if err != nil {
@@ -60,6 +64,7 @@ func Open(path string) (*Cache, error) {
 	c.Printf("  table <white>events</>...\n")
 	_, err = db.Exec(`
 	CREATE TABLE "events" (
+	    "repo" CHAR(64) NOT NULL, 
 	    "pr" INTEGER, 
 	    "date" DATE NOT NULL,
 	    "event" CHAR(32) NOT NULL,
@@ -71,7 +76,7 @@ func Open(path string) (*Cache, error) {
 	    "body" VARCHAR,
 	    
 	    "url" CHAR(128) NOT NULL,
-	    PRIMARY KEY (pr, date)
+	    PRIMARY KEY (repo, pr, date)
 	)
 	`)
 	if err != nil {

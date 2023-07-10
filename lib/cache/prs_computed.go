@@ -5,20 +5,19 @@ import (
 	"math"
 	"time"
 
-	c "github.com/gookit/color"
+	c "github.com/gookit/color" // nolint:misspell
 	"github.com/katbyte/gogo-repo-stats/lib/clog"
 )
 
-func (cache Cache) ComputeAndUpdatePRStats(number int) (open, waiting, tofirst *float64, err error) {
-
+func (cache Cache) ComputeAndUpdatePRStats(repo string, number int) (open, waiting, tofirst *float64, err error) {
 	// check cache
-	pr, err := cache.GetPR(number)
+	pr, err := cache.GetPR(repo, number)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get pr %d: %w", number, err)
 	}
 
 	// get events
-	events, err := cache.GetEventsForPR(number)
+	events, err := cache.GetEventsForPR(repo, number)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("getting events for PR %d: %w", number, err)
 	}
@@ -32,11 +31,10 @@ func (cache Cache) ComputeAndUpdatePRStats(number int) (open, waiting, tofirst *
 	var duration time.Duration
 	opened := pr.Created
 	for _, e := range events {
-
 		if e.Event == "closed" {
 			d := e.Date.Sub(opened)
-			clog.Log.Debugf(c.Sprintf("      closed @ %s after %s days \n", e.Date.Format("2006-01-02"), d.Hours()/24))
-			duration = duration + d
+			clog.Log.Debugf(c.Sprintf("      closed @ %s after %00.00f days \n", e.Date.Format("2006-01-02"), d.Hours()/24))
+			duration += d
 		}
 
 		if e.Event == "reopened" {
@@ -47,7 +45,7 @@ func (cache Cache) ComputeAndUpdatePRStats(number int) (open, waiting, tofirst *
 		if e.Event == "merged" {
 			d := e.Date.Sub(opened)
 			clog.Log.Debugf(c.Sprintf("      merged @ %s\n", e.Date.Format("2006-01-02")))
-			duration = duration + d
+			duration += d
 			break
 		}
 
@@ -60,7 +58,7 @@ func (cache Cache) ComputeAndUpdatePRStats(number int) (open, waiting, tofirst *
 		if pr.State == "closed" {
 			duration += pr.Closed.Sub(opened)
 		} else {
-			duration += time.Now().Sub(opened)
+			duration += time.Since(opened)
 		}
 	}
 	daysOpen := duration.Hours() / 24
@@ -70,10 +68,10 @@ func (cache Cache) ComputeAndUpdatePRStats(number int) (open, waiting, tofirst *
 	duration = time.Duration(0)
 	opened = pr.Created
 	for _, e := range events {
-		if e.Event == "labeled" && e.Label == "waiting-response" {
+		if e.Event == "labeled" && e.Label == "waiting-response" { // nolint:misspell
 			d := e.Date.Sub(opened)
-			clog.Log.Debugf(c.Sprintf("      labeled waiting-response @ %s after %.2f days \n", e.Date.Format("2006-01-02"), d.Hours()/24))
-			duration = duration + d
+			clog.Log.Debugf(c.Sprintf("      labeled waiting-response @ %s after %.2f days \n", e.Date.Format("2006-01-02"), d.Hours()/24)) // nolint:misspell
+			duration += d
 		}
 
 		if e.Event == "unlabeled" && e.Label == "waiting-response" {
@@ -86,7 +84,7 @@ func (cache Cache) ComputeAndUpdatePRStats(number int) (open, waiting, tofirst *
 		if pr.State == "closed" {
 			duration += pr.Closed.Sub(opened)
 		} else {
-			duration += time.Now().Sub(opened)
+			duration += time.Since(opened)
 		}
 	}
 	daysWaiting := duration.Hours() / 24
@@ -104,9 +102,9 @@ func (cache Cache) ComputeAndUpdatePRStats(number int) (open, waiting, tofirst *
 			break
 		}
 
-		if e.Event == "labeled" && e.Label == "Waiting-for-Response" {
+		if e.Event == "labeled" && e.Label == "Waiting-for-Response" { // nolint:misspell
 			duration = e.Date.Sub(pr.Created)
-			clog.Log.Debugf(c.Sprintf("      first: labeled @ %s\n", e.Date.Format("2006-01-02")))
+			clog.Log.Debugf(c.Sprintf("      first: labeled @ %s\n", e.Date.Format("2006-01-02"))) // nolint:misspell
 			break
 		}
 
@@ -121,7 +119,7 @@ func (cache Cache) ComputeAndUpdatePRStats(number int) (open, waiting, tofirst *
 		if pr.State == "closed" {
 			duration += pr.Closed.Sub(opened)
 		} else {
-			duration += time.Now().Sub(opened)
+			duration += time.Since(opened)
 		}
 	}
 	daysToFirst := duration.Hours() / 24
@@ -129,7 +127,7 @@ func (cache Cache) ComputeAndUpdatePRStats(number int) (open, waiting, tofirst *
 	clog.Log.Debugf(c.Sprintf("  days open: <green>%.2f</> waiting: <green>%.2f</> to first: <green>%.2f</> \n", daysOpen, daysWaiting, daysToFirst))
 
 	// update row in DB:
-	err = cache.UpsertPRStats(pr.Number, math.Floor(daysOpen*100)/100, math.Floor(daysWaiting*100)/100, math.Floor(daysToFirst*100)/100)
+	err = cache.UpsertPRStats(repo, pr.Number, math.Floor(daysOpen*100)/100, math.Floor(daysWaiting*100)/100, math.Floor(daysToFirst*100)/100)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("update cache pr stats %d: %w", pr.Number, err)
 	}

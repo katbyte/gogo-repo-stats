@@ -4,11 +4,9 @@ import (
 	"fmt"
 
 	"github.com/katbyte/gogo-repo-stats/version"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	_ "github.com/mattn/go-sqlite3"
-	//nolint:misspell
 )
 
 func ValidateParams(params []string) func(cmd *cobra.Command, args []string) error {
@@ -24,17 +22,17 @@ func ValidateParams(params []string) func(cmd *cobra.Command, args []string) err
 }
 
 func Make(cmdName string) (*cobra.Command, error) {
-	// todo should this be a no-op to avoid accidentally triggering broken builds on malformed commands ?
+
+	// todo should this be a no-op to avoid accidentally triggering broken runs on malformed commands ?
 	root := &cobra.Command{
 		Use:           cmdName + " [command]",
 		Short:         cmdName + "is a small utility to TODO",
 		Long:          `TODO`,
 		SilenceErrors: true,
-		PreRunE:       ValidateParams([]string{"token", "org", "repo", "cache"}),
+		PreRunE:       ValidateParams([]string{"token", "repos", "cache"}),
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			// f := GetFlags()
-			// r := gh.NewRepo(f.Owner, f.Repo, f.Token)
+			// r := gh.NewRepo(f.Owner, f.Repos, f.Token)
 
 			// what should default be?
 
@@ -52,7 +50,7 @@ func Make(cmdName string) (*cobra.Command, error) {
 		Use:           "fetch",
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
-		PreRunE:       ValidateParams([]string{"token", "org", "repo", "cache"}),
+		PreRunE:       ValidateParams([]string{"token", "repos", "cache"}),
 		RunE:          CmdFetch,
 	})
 
@@ -69,6 +67,7 @@ func Make(cmdName string) (*cobra.Command, error) {
 		Use:           "graphs",
 		Args:          cobra.MaximumNArgs(2),
 		SilenceErrors: true,
+		PreRunE:       ValidateParams([]string{"cache"}),
 		RunE:          CmdGraphs,
 	})
 

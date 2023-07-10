@@ -20,6 +20,10 @@ fumpt:
 	# This logic should match the search logic in scripts/gofmtcheck.sh
 	find . -name '*.go' | grep -v vendor | xargs gofumpt -s -w
 
+whitespace:
+	@echo "==> Fixing source code with whitespace linter..."
+	golangci-lint run ./... --no-config --disable-all --enable=whitespace --fix
+
 imports:
 	@echo "==> Fixing imports code with goimports..."
 	goimports -w .

@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
-	c "github.com/gookit/color"
+	c "github.com/gookit/color" // nolint:misspell
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/katbyte/gogo-repo-stats/lib/cache"
+	"github.com/katbyte/gogo-repo-stats/lib/gh"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +26,10 @@ import (
 // report (last month till now)
 // report YYYY-MM (date till now)
 // report YYYY-MM YYYY-MM (range a to b)
+
+// multirepo:
+// for each repo output a report
+// then do a total report for all repos
 
 func CmdReport(_ *cobra.Command, args []string) error {
 	var err error
@@ -57,6 +62,7 @@ func CmdReport(_ *cobra.Command, args []string) error {
 	defer cache.DB.Close()
 
 	c.Printf("Generating reports forall PRs from <white>%s</> to <white>%s</>...\n", from.Format("2006-01-02"), to.Format("2006-01-02"))
+	c.Printf("  for repos: <cyan>%s</>\n", strings.Join(f.Repos, "</>, <cyan>"))
 	if len(f.Authors) > 0 {
 		c.Printf("  for authors: <green>%s</>\n", strings.Join(f.Authors, "</>, <green>"))
 	}
@@ -72,23 +78,50 @@ func CmdReport(_ *cobra.Command, args []string) error {
 
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(table.Row{c.Sprintf("<cyan>%s</>", month.Format("2006-01")), "Opened", "Open", "Days Open", "Days Wait", "Days First", "First Over"})
+		t.AppendHeader(table.Row{c.Sprintf("<yellow>%s</>", month.Format("2006-01")), "Opened", "Open", "Days Open", "Days Wait", "Days First", "First Over"})
 
-		n := 0
-		for weekStart := monthStart; weekStart.Before(monthEnd); weekStart = weekStart.AddDate(0, 0, 7) {
-			n++
-			weekEnd := weekStart.AddDate(0, 0, 7).Add(-time.Nanosecond)
-			if weekEnd.After(monthEnd) {
-				weekEnd = monthEnd
+		var totalOpened, totalOpen, totalFirstOver int
+
+		for _, repo := range f.Repos {
+
+			// quick hack to shorten repo names
+			repoShort := gh.RepoShortName(repo)
+
+			// t.AppendRows([]table.Row{{c.Sprintf("<cyan>%s</>", repoShort), "Opened", "Open", "Days Open", "Days Wait", "Days First", "First Over"}})
+			// t.AppendSeparator()
+
+			n := 0
+			for weekStart := monthStart; weekStart.Before(monthEnd); weekStart = weekStart.AddDate(0, 0, 7) {
+				n++
+				weekEnd := weekStart.AddDate(0, 0, 7).Add(-time.Nanosecond)
+				if weekEnd.After(monthEnd) {
+					weekEnd = monthEnd
+				}
+
+				stats, err := cache.CalculateRepoPRStatsForDateRange(weekStart, weekEnd, []string{repo}, f.Authors)
+				if err != nil {
+					return fmt.Errorf("failed to query stats: %w", err)
+				}
+
+				t.AppendRows([]table.Row{{
+					c.Sprintf("<magenta>W%d</>", n),
+					strconv.Itoa(stats.Total),
+					strconv.Itoa(stats.Open),
+					strconv.FormatFloat(stats.DaysOpenAverage.Float64, 'f', 2, 64),
+					strconv.FormatFloat(stats.DaysWaitingAverage.Float64, 'f', 2, 64),
+					strconv.FormatFloat(stats.DaysToFirstAverage.Float64, 'f', 2, 64),
+					strconv.Itoa(stats.DaysToFirstOver),
+				}})
 			}
 
-			stats, err := cache.CalculatePRStatsForDateRange(weekStart, weekEnd, f.Authors)
+			stats, err := cache.CalculateRepoPRStatsForDateRange(monthStart, monthEnd, []string{repo}, f.Authors)
 			if err != nil {
 				return fmt.Errorf("failed to query stats: %w", err)
 			}
 
+			t.AppendSeparator()
 			t.AppendRows([]table.Row{{
-				c.Sprintf("<magenta>W%d</>", n),
+				c.Sprintf("<cyan>%s</>", repoShort),
 				strconv.Itoa(stats.Total),
 				strconv.Itoa(stats.Open),
 				strconv.FormatFloat(stats.DaysOpenAverage.Float64, 'f', 2, 64),
@@ -96,28 +129,69 @@ func CmdReport(_ *cobra.Command, args []string) error {
 				strconv.FormatFloat(stats.DaysToFirstAverage.Float64, 'f', 2, 64),
 				strconv.Itoa(stats.DaysToFirstOver),
 			}})
+			t.AppendSeparator()
+
+			totalOpened += stats.Total
+			totalOpen += stats.Open
+			totalFirstOver += stats.DaysToFirstOver
 		}
 
-		stats, err := cache.CalculatePRStatsForDateRange(monthStart, monthEnd, f.Authors)
+		t.AppendFooter(table.Row{
+			"ALL",
+			strconv.Itoa(totalOpened),
+			strconv.Itoa(totalOpen),
+			"",
+			"",
+			"",
+			strconv.Itoa(totalFirstOver),
+		})
+		t.Render() // Send output
+		fmt.Println()
+		fmt.Println()
+
+	}
+
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{c.Sprintf("<yellow>%s</><><yellow>%s</>", from.Format("2006-01-02"), to.Format("2006-01-02")), "Opened", "Open", "Days Open", "Days Wait", "Days First", "First Over"})
+	t.AppendSeparator()
+
+	// calculate total stats for each repo
+	var totalOpened, totalOpen, totalFirstOver int
+	for _, repo := range f.Repos {
+		// quick hack to shorten repo names
+		repoShort := gh.RepoShortName(repo)
+
+		stats, err := cache.CalculateRepoPRStatsForDateRange(from, to, []string{repo}, f.Authors)
 		if err != nil {
 			return fmt.Errorf("failed to query stats: %w", err)
 		}
 
-		t.AppendSeparator()
-		t.AppendFooter(table.Row{
-			"SUM",
+		t.AppendRows([]table.Row{{
+			c.Sprintf("<cyan>%s</>", repoShort),
 			strconv.Itoa(stats.Total),
 			strconv.Itoa(stats.Open),
 			strconv.FormatFloat(stats.DaysOpenAverage.Float64, 'f', 2, 64),
 			strconv.FormatFloat(stats.DaysWaitingAverage.Float64, 'f', 2, 64),
 			strconv.FormatFloat(stats.DaysToFirstAverage.Float64, 'f', 2, 64),
 			strconv.Itoa(stats.DaysToFirstOver),
-		})
+		}})
 
-		t.Render() // Send output
-		fmt.Println()
-		fmt.Println()
+		totalOpened += stats.Total
+		totalOpen += stats.Open
+		totalFirstOver += stats.DaysToFirstOver
 	}
-
+	t.AppendSeparator()
+	t.AppendFooter(table.Row{
+		"ALL",
+		strconv.Itoa(totalOpened),
+		strconv.Itoa(totalOpen),
+		"",
+		"",
+		strconv.Itoa(totalFirstOver),
+	})
+	t.Render() // Send output
+	fmt.Println()
+	fmt.Println()
 	return nil
 }
