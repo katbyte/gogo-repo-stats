@@ -52,7 +52,7 @@ func CmdFetch(_ *cobra.Command, _ []string) error {
 					// if cached && closed (in cache) we have all relevant data
 					if cpr != nil && cpr.State != "open" {
 						// but check events, if zero we likely should get all events again
-						cevents, err := cache.GetEventsForPR(repo, n)
+						cevents, err := cache.GetEventsFor(repo, n)
 						if err != nil {
 							return fmt.Errorf("failed to get events from cache %s/%s/%d: %w", r.Owner, r.Name, n, err)
 						}
@@ -75,7 +75,9 @@ func CmdFetch(_ *cobra.Command, _ []string) error {
 				gh, ctx := r.NewClient()
 				pr, _, err := gh.PullRequests.Get(ctx, r.Owner, r.Name, n)
 				if err != nil {
+
 					return fmt.Errorf("failed to get pr from GH %s/%s/%d: %w", r.Owner, r.Name, n, err)
+
 				}
 
 				err = cache.UpsertRepoPRFromGH(repo, pr)
@@ -112,6 +114,100 @@ func CmdFetch(_ *cobra.Command, _ []string) error {
 		})
 		if err != nil {
 			return fmt.Errorf("failed to get all prs for %s/%s: %w", r.Owner, r.Name, err)
+		}
+
+		err = r.ListAllIssues("all", func(issues []*github.Issue, resp *github.Response) error {
+			for i, p := range issues {
+				count++
+
+				if p == nil {
+					c.Printf(" <red>issues[%d] was nil</>, skipping", i)
+					continue
+				}
+
+				n := p.GetNumber()
+				if n == 0 {
+					c.Printf(" <red>issues[%d].Number was nil</>, skipping", i)
+					continue
+				}
+
+				if p.IsPullRequest() {
+					continue
+				}
+
+				// check cache
+				cissue, err := cache.GetIssue(repo, n)
+				if err != nil {
+					c.Printf(" <red>issues[%d] unable to look up in cache</>, skipping: %s\n\n", err)
+				}
+
+				// if cached && closed (in cache) we have all relevant data
+				if cissue != nil && cissue.State != "open" {
+					// but check events, if zero we likely should get all events again
+					cevents, err := cache.GetEventsFor(repo, n)
+					if err != nil {
+						return fmt.Errorf("failed to get events from cache %s/%s/%d: %w", r.Owner, r.Name, n, err)
+					}
+
+					c.Printf(" issue <cyan>#%d</> <darkGray>(%d @ %s)</>: %s\n", n, count, p.GetCreatedAt().Format("2006-01-02"), p.GetTitle())
+					c.Printf("   CACHED! with <green>%d</> events\n", len(cevents))
+
+					if len(cevents) != 0 && !full {
+						continue
+					}
+				}
+
+				if p.GetState() == "open" {
+					c.Printf(" issue <yellow>#%d</> <darkGray>(%d @ %s)</>: %s\n", n, count, p.GetCreatedAt().Format("2006-01-02"), p.GetTitle())
+				} else {
+					c.Printf(" issue <green>#%d</> <darkGray>(%d @ %s)</>: %s\n", n, count, p.GetCreatedAt().Format("2006-01-02"), p.GetTitle())
+				}
+
+				gh, ctx := r.NewClient()
+				issue, _, err := gh.Issues.Get(ctx, r.Owner, r.Name, n)
+				if err != nil {
+
+					return fmt.Errorf("failed to get issue from GH %s/%s/%d: %w", r.Owner, r.Name, n, err)
+
+				}
+
+				err = cache.UpsertRepoIssueFromGH(repo, issue)
+				if err != nil {
+					return fmt.Errorf("cache upsert failed: %w", err)
+				}
+
+				// get and store events
+				events, err := r.GetAllIssueEvents(*issue.Number)
+				if err != nil {
+					return fmt.Errorf("failed to get events from GH %s/%s/%d: %w", r.Owner, r.Name, n, err)
+				}
+
+				c.Printf("   <darkGray>events:</> ")
+				for _, t := range *events {
+					c.Printf("%s, ", t.GetEvent())
+
+					err = cache.UpsertEvent(repo, n, &t)
+					if err != nil {
+						return fmt.Errorf("cache upsert failed: %w", err)
+					}
+				}
+				c.Printf("\n")
+
+				// TODO compute stats for issues
+				// now that we have PR and events in the cache, we can calculate stats:
+				/*daysOpen, daysWaiting, daysToFirst, err := cache.ComputeAndUpdatePRStats(repo, issue.GetNumber())
+				if err != nil {
+					return fmt.Errorf("falied to compute and update stats: %w", err)
+				}
+				c.Printf("   <darkGray>days</> open: <green>%.2f</> waiting: <green>%.2f</> first: <green>%.2f</> \n", *daysOpen, *daysWaiting, *daysToFirst)
+
+				*/
+			}
+
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("failed to get all issues for %s/%s: %w", r.Owner, r.Name, err)
 		}
 	}
 	return nil

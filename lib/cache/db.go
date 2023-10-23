@@ -61,11 +61,34 @@ func Open(path string) (*Cache, error) {
 	}
 
 	// id, title, user, email, state, milestone, merged, merger, merger_email, created, closed
+	c.Printf("  table <white>issues</>...\n")
+	_, err = db.Exec(`
+	CREATE TABLE "issues" (
+	    "repo" CHAR(64) NOT NULL, 
+	    "number" INTEGER, 
+	    "title" VARCHAR(256) NOT NULL, 
+	    "user" CHAR(64) NOT NULL, 
+	    "state" CHAR(32) NOT NULL,
+	    "milestone" CHAR(32) NULL,
+	    "labels" VARCHAR(256) NULL,
+	    "created" DATE NOT NULL,
+	    "closed" DATE,
+	    "daysopen" REAL,
+	    PRIMARY KEY (repo, number)
+	)
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create PR table %s: %w", path, err)
+	}
+
+	// TODO change pr to number? pr_or_issue
+
+	// id, title, user, email, state, milestone, merged, merger, merger_email, created, closed
 	c.Printf("  table <white>events</>...\n")
 	_, err = db.Exec(`
 	CREATE TABLE "events" (
 	    "repo" CHAR(64) NOT NULL, 
-	    "pr" INTEGER, 
+	    "pr" INTEGER,  
 	    "date" DATE NOT NULL,
 	    "event" CHAR(32) NOT NULL,
 	    "user" CHAR(64) NOT NULL, 

@@ -6,6 +6,7 @@ require (
 	github.com/go-echarts/go-echarts/v2 v2.2.5-0.20230112064613-d00d0b6999ce
 	github.com/google/go-github/v45 v45.2.0
 	github.com/gookit/color v1.5.0
+	github.com/hashicorp/go-retryablehttp v0.7.4
 	github.com/jedib0t/go-pretty/v6 v6.4.3
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/sirupsen/logrus v1.8.1
@@ -13,6 +14,8 @@ require (
 	github.com/spf13/viper v1.10.1
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 )
+
+require github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 
 require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect

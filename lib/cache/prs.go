@@ -196,7 +196,8 @@ func (cache Cache) GetRepoPRsOpenForDateRange(repos []string, from, to time.Time
 		SELECT %[1]s  FROM prs
 		WHERE
 		    (created BETWEEN '%[2]s' AND '%[3]s' OR 
-		    closed BETWEEN '%[2]s' AND '%[3]s')
+		    closed BETWEEN '%[2]s' AND '%[3]s' OR 
+		    closed < '1977-7-7')
 		    %[4]s
 	`, ColumnsPR, from.Format("2006-01-02"), to.Format("2006-01-02"), repoClause))
 }

@@ -17,7 +17,7 @@ func (cache Cache) ComputeAndUpdatePRStats(repo string, number int) (open, waiti
 	}
 
 	// get events
-	events, err := cache.GetEventsForPR(repo, number)
+	events, err := cache.GetEventsFor(repo, number)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("getting events for PR %d: %w", number, err)
 	}

@@ -87,7 +87,7 @@ func (cache Cache) UpsertEvent(repo string, pr int, event *github.Timeline) erro
 	return nil
 }
 
-func (cache Cache) GetEventsForPR(repo string, number int) ([]Event, error) {
+func (cache Cache) GetEventsFor(repo string, number int) ([]Event, error) {
 	rows, err := cache.DB.Query(fmt.Sprintf(`
 		SELECT repo, pr, date, event, user, state, label, milestone, body, url 
 		FROM events 

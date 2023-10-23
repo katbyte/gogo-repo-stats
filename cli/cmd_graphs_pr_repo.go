@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
+	c "github.com/gookit/color"
 	"github.com/katbyte/gogo-repo-stats/lib/cache"
 	"github.com/katbyte/gogo-repo-stats/lib/gh"
 )
@@ -18,6 +19,7 @@ import (
 func GraphsRepoOpenedPRsDaily(cache *cache.Cache, outPath string, from, to time.Time, repos []string) error {
 	f := GetFlags() // todo out path ends up in flags
 
+	c.Printf("    PRs opened daily..\n")
 	var xAxis []string
 	var merged, closed, open []opts.BarData
 
@@ -131,6 +133,8 @@ func GraphRepoTotalPRsDaily(cache *cache.Cache, outPath string, from, to time.Ti
 	f := GetFlags() // todo out path ends up in flags
 
 	var totalCount, mergedCount, closedCount, openCount int
+
+	c.Printf("    Total PRs daily..\n")
 
 	// previous totals todo ???? these would be the PRs from before the start date
 	/*
@@ -263,7 +267,7 @@ func GraphRepoTotalPRsDaily(cache *cache.Cache, outPath string, from, to time.Ti
 	return nil
 }
 
-type DayStats struct {
+type DayStatsPRs struct {
 	Total         int
 	Open          int
 	Blocked       int
@@ -273,18 +277,20 @@ type DayStats struct {
 	TrendSevenDay int
 }
 
-func GraphRepoOpenPRsDaily(c *cache.Cache, outPath string, from, to time.Time, repos []string) error {
+func GraphRepoOpenPRsDaily(theCache *cache.Cache, outPath string, from, to time.Time, repos []string) error {
 	// f := GetFlags() // todo out path ends up in flags
 
+	c.Printf("    PRs open daily..\n")
+
 	// populate dates
-	dates := map[string]DayStats{}
+	dates := map[string]DayStatsPRs{}
 	for day := from; day.Before(to); day = day.AddDate(0, 0, 1) {
 		k := day.Format("2006-01-02")
-		dates[k] = DayStats{}
+		dates[k] = DayStatsPRs{}
 	}
 
 	// get all prs for range
-	prs, err := c.GetRepoPRsOpenForDateRange(repos, from, to)
+	prs, err := theCache.GetRepoPRsOpenForDateRange(repos, from, to)
 	if err != nil {
 		return fmt.Errorf("getting PRs: %w", err)
 	}
@@ -301,7 +307,7 @@ func GraphRepoOpenPRsDaily(c *cache.Cache, outPath string, from, to time.Time, r
 
 		// figure out timeline of events that matter
 		// array of times -> "state" it is now in: waiting, approved, blocked
-		events, err := c.GetEventsForPR(pr.Repo, pr.Number)
+		events, err := theCache.GetEventsFor(pr.Repo, pr.Number)
 		if err != nil {
 			return fmt.Errorf("getting events for PR %d: %w", pr.Number, err)
 		}
@@ -509,7 +515,7 @@ func GraphRepoOpenPRsDaily(c *cache.Cache, outPath string, from, to time.Time, r
 	return nil
 }
 
-type WeekStats struct {
+type WeekStatsPRs struct {
 	Total           int
 	OpenDays        float64
 	WaitingDays     float64

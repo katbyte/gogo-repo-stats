@@ -61,8 +61,9 @@ func CmdGraphs(_ *cobra.Command, args []string) error {
 	}
 
 	for _, repo := range f.Repos {
-
 		repoPath := outPath + "/" + gh.RepoShortName(repo)
+
+		c.Printf("  <cyan>%s</> -> %s:\n", repo, repoPath)
 
 		// ensure path exists
 		if _, err := os.Stat(repoPath); os.IsNotExist(err) {
@@ -86,9 +87,14 @@ func CmdGraphs(_ *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to generate daily pr graphs path: %w", err)
 		}*/
 
-		// todo daily "how long prs waited"
+		// todo daily "how long prs waited"?
+
+		if err = GraphRepoOpenPRsDailyByType(cache, repoPath, from, to, []string{repo}); err != nil {
+			return fmt.Errorf("failed to generate daily open issues by type graphs path: %w", err)
+		}
 	}
 
+	c.Printf("  <magenta>MultiRepo graphs</>...\n")
 	if err = GraphMultiRepoTotalPRsDaily(cache, outPath, from, to, f.Repos); err != nil {
 		return fmt.Errorf("failed to generate daily pr graphs path: %w", err)
 	}

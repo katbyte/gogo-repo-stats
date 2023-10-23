@@ -148,12 +148,12 @@ func GraphMultiRepoOpenPRsDaily(c *cache.Cache, outPath string, from, to time.Ti
 	}
 
 	// populate dates
-	dates := map[string]map[string]DayStats{}
+	dates := map[string]map[string]DayStatsPRs{}
 	for day := from; day.Before(to.AddDate(0, 0, 1)); day = day.AddDate(0, 0, 1) {
 		k := day.Format("2006-01-02")
-		dates[k] = map[string]DayStats{}
+		dates[k] = map[string]DayStatsPRs{}
 		for _, r := range repos {
-			dates[k][r] = DayStats{}
+			dates[k][r] = DayStatsPRs{}
 		}
 	}
 
@@ -175,7 +175,7 @@ func GraphMultiRepoOpenPRsDaily(c *cache.Cache, outPath string, from, to time.Ti
 
 		// figure out timeline of events that matter
 		// array of times -> "state" it is now in: waiting, approved, blocked
-		events, err := c.GetEventsForPR(pr.Repo, pr.Number)
+		events, err := c.GetEventsFor(pr.Repo, pr.Number)
 		if err != nil {
 			return fmt.Errorf("getting events for PR %d: %w", pr.Number, err)
 		}
