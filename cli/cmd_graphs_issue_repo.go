@@ -22,6 +22,7 @@ import (
 //  service - service/*
 
 type DayStatsIssuesByType struct {
+	Date          time.Time
 	Total         int
 	Bug           int
 	Enhancement   int
@@ -42,7 +43,9 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 	dates := map[string]DayStatsIssuesByType{}
 	for day := from; day.Before(to); day = day.AddDate(0, 0, 1) {
 		k := day.Format("2006-01-02")
-		dates[k] = DayStatsIssuesByType{}
+		dates[k] = DayStatsIssuesByType{
+			Date: day,
+		}
 	}
 
 	// get all issues for range
@@ -123,6 +126,15 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 	sort.Strings(days)
 	for _, date := range days {
 		day := dates[date]
+
+		if day.Date.Before(from.AddDate(0, 0, -1)) {
+			continue
+		}
+
+		if day.Date.After(to) {
+			continue
+		}
+
 		data = append(data, []string{date,
 			strconv.Itoa(day.Total),
 			strconv.Itoa(day.Other),
@@ -154,6 +166,7 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 				lineNewDatasource = append(lineNewDatasource, opts.LineData{Value: day.NewDatasource})
 				lineDocumentation = append(lineDocumentation, opts.LineData{Value: day.Documentation})
 		*/
+
 	}
 
 	// write raw data

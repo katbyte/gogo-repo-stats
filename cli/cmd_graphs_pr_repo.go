@@ -268,6 +268,7 @@ func GraphRepoTotalPRsDaily(cache *cache.Cache, outPath string, from, to time.Ti
 }
 
 type DayStatsPRs struct {
+	Date          time.Time
 	Total         int
 	Open          int
 	Blocked       int
@@ -286,7 +287,9 @@ func GraphRepoOpenPRsDaily(theCache *cache.Cache, outPath string, from, to time.
 	dates := map[string]DayStatsPRs{}
 	for day := from; day.Before(to); day = day.AddDate(0, 0, 1) {
 		k := day.Format("2006-01-02")
-		dates[k] = DayStatsPRs{}
+		dates[k] = DayStatsPRs{
+			Date: day,
+		}
 	}
 
 	// get all prs for range
@@ -418,6 +421,14 @@ func GraphRepoOpenPRsDaily(theCache *cache.Cache, outPath string, from, to time.
 	for _, date := range days {
 		day := dates[date]
 		data = append(data, []string{date, strconv.Itoa(day.Total), strconv.Itoa(day.Open), strconv.Itoa(day.Blocked), strconv.Itoa(day.Waiting), strconv.Itoa(day.WaitingOver), strconv.Itoa(day.Approved)})
+
+		if day.Date.Before(from.AddDate(0, 0, -1)) {
+			continue
+		}
+
+		if day.Date.After(to) {
+			continue
+		}
 
 		xAxis = append(xAxis, date)
 		// totalLine = append(totalLine, opts.LineData{Value: day.Total})
