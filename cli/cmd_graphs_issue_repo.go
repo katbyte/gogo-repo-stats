@@ -157,7 +157,7 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 		lineOther = append(lineOther, opts.LineData{Value: day.Other})
 		lineBug = append(lineBug, opts.LineData{Value: day.Bug})
 		lineEnhancement = append(lineEnhancement, opts.LineData{Value: day.Enhancement})
-		lineQuestion = append(lineEnhancement, opts.LineData{Value: day.Question})
+		lineQuestion = append(lineQuestion, opts.LineData{Value: day.Question})
 
 		/*
 			lineQuestion = append(lineQuestion, opts.LineData{Value: day.Question})

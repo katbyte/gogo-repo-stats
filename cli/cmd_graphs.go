@@ -83,6 +83,10 @@ func CmdGraphs(_ *cobra.Command, args []string) error {
 		if err = GraphRepoOpenPRsDaily(cache, repoPath, from, to, []string{repo}); err != nil {
 			return fmt.Errorf("failed to generate daily open pr graphs path: %w", err)
 		}
+		if err = GraphRepoOpenPRsByAuthorsDaily(cache, repoPath, from, to, []string{repo}); err != nil {
+			return fmt.Errorf("failed to generate daily open pr by author graphs path: %w", err)
+		}
+
 		/*if err = GraphRepoWeeklyPrStats(repo, cache, repoPath, from, to); err != nil {
 			return fmt.Errorf("failed to generate daily pr graphs path: %w", err)
 		}*/

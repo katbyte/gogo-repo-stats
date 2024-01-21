@@ -51,6 +51,28 @@ func NewRepoOwnerName(owner, name, token string) Repo {
 	return r
 }
 
+type Project struct {
+	Owner  string
+	Number int
+	Token
+}
+
+func NewProject(owner string, number int, token string) Project {
+	p := Project{
+		Owner:  owner,
+		Number: number,
+		Token: Token{
+			Token: nil,
+		},
+	}
+
+	if token != "" {
+		p.Token.Token = &token
+	}
+
+	return p
+}
+
 func (t Token) NewClient() (*github.Client, context.Context) {
 	ctx := context.Background()
 

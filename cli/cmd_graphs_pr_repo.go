@@ -526,6 +526,217 @@ func GraphRepoOpenPRsDaily(theCache *cache.Cache, outPath string, from, to time.
 	return nil
 }
 
+type DayStatsPRsByAuthor struct {
+	Date    time.Time
+	Total   int
+	ByGroup map[string]int
+}
+
+func GraphRepoOpenPRsByAuthorsDaily(theCache *cache.Cache, outPath string, from, to time.Time, repos []string) error {
+	// f := GetFlags()
+
+	// todo make args
+	authorGroupings := map[string][]string{
+		"hashicorp": {"katbyte", "tombuildsstuff", "mbfrahry", "jackofallops", "manicminer", "stephybun"},
+		"microsoft": {"wodansson", "magodo", "mybayern1974", "xuzhang3", "wuxu92", "teowa", "ms-henglu", "lonegunmanb", "xiaxyi", "ms-zhenhua", "myc2h6o", "neil-yechenwei", "sinbai", "jiaweitao001", "liuwuliuyun", "ziyeqf"},
+		"community": {"*"},
+	}
+
+	authorLookup := map[string]string{}
+	for group, authors := range authorGroupings {
+		for _, author := range authors {
+			authorLookup[author] = group
+		}
+	}
+
+	c.Printf("    PRs open daily (by Author)..\n")
+
+	// populate dates
+	dates := map[string]DayStatsPRsByAuthor{}
+	for day := from; day.Before(to); day = day.AddDate(0, 0, 1) {
+		k := day.Format("2006-01-02")
+
+		byGroup := map[string]int{}
+		for group := range authorGroupings {
+			byGroup[group] = 0
+		}
+
+		dates[k] = DayStatsPRsByAuthor{
+			Date:    day,
+			ByGroup: byGroup,
+		}
+	}
+
+	// get all prs for range
+	prs, err := theCache.GetRepoPRsOpenForDateRange(repos, from, to)
+	if err != nil {
+		return fmt.Errorf("getting PRs: %w", err)
+	}
+
+	// for each pr in range
+	for _, pr := range *prs {
+		opened := time.Date(pr.Created.Year(), pr.Created.Month(), pr.Created.Day(), 0, 0, 0, 0, time.UTC)
+
+		closed := pr.Closed
+		if pr.State == "open" {
+			closed = time.Now()
+		}
+		closed = time.Date(closed.Year(), closed.Month(), closed.Day(), 0, 0, 0, 0, time.UTC)
+
+		group, ok := authorLookup[pr.User]
+		if !ok {
+			group = "community"
+		}
+
+		fmt.Printf("group: %s\n", group)
+		for day := opened; ; day = day.AddDate(0, 0, 1) {
+			if day.Before(from.AddDate(0, 0, -1)) {
+				continue
+			}
+
+			k := day.Format("2006-01-02")
+
+			d := dates[k]
+			d.Total++
+			d.ByGroup[group] = d.ByGroup[group] + 1
+			dates[k] = d
+
+			// check is here so PRs open for less than 1 day are counted
+			if !day.Before(closed) {
+				break
+			}
+
+			if day.After(to) {
+				break
+			}
+		}
+	}
+
+	var xAxis []string
+
+	lineData := map[string][]opts.LineData{}
+	authroGroups := []string{}
+	for group := range authorGroupings {
+		lineData[group] = []opts.LineData{}
+		authroGroups = append(authroGroups, group)
+	}
+
+	data := [][]string{{"date", "total"}}
+	data[0] = append(data[0], authroGroups...)
+
+	days := make([]string, 0, len(dates))
+	for day := range dates {
+		days = append(days, day)
+	}
+	sort.Strings(days)
+
+	for _, date := range days {
+		day := dates[date]
+		data = append(data, []string{date, strconv.Itoa(day.Total)})
+
+		for _, group := range authroGroups {
+			data = append(data, []string{date, strconv.Itoa(day.ByGroup[group])})
+			lineData[group] = append(lineData[group], opts.LineData{Value: day.ByGroup[group]})
+		}
+
+		if day.Date.Before(from.AddDate(0, 0, -1)) {
+			continue
+		}
+
+		if day.Date.After(to) {
+			continue
+		}
+
+		xAxis = append(xAxis, date)
+	}
+
+	// write raw data
+	file, err := os.Create(outPath + "/daily-prs-open.csv")
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	csv := csv.NewWriter(file)
+	defer csv.Flush()
+
+	for _, r := range data {
+		err := csv.Write(r)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	var repoShortNames []string
+	for _, r := range repos {
+		repoShortNames = append(repoShortNames, gh.RepoShortName(r))
+	}
+
+	// render graph
+	graph := charts.NewLine()
+	graph.SetGlobalOptions(
+		// charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
+		charts.WithTitleOpts(opts.Title{
+			Title:    strings.Join(repoShortNames, ",") + " PRs Open (daily)",
+			Subtitle: "By State: open, waiting, waiting (over 14 days), blocked, approved",
+			Left:     "center", // nolint:misspell
+		}),
+
+		charts.WithXAxisOpts(opts.XAxis{
+			Name: "Date",
+			// AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
+		}),
+		charts.WithYAxisOpts(opts.YAxis{
+			Name: "PRs",
+			// AxisLabel: &opts.AxisLabel{Show: true, Formatter: "{value} x-unit"},
+		}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "1500px",
+			Height: "750px",
+		}),
+		charts.WithColorsOpts(opts.Colors{"#C13530", "#2E4555", "#62A0A8", "#5470c6", "#000000"}),
+		charts.WithToolboxOpts(opts.Toolbox{Show: true}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Show:      true,
+			Trigger:   "axis",
+			TriggerOn: "mousemove",
+		}),
+		charts.WithLegendOpts(opts.Legend{
+			Show: true,
+			Top:  "bottom",
+			Left: "center", // nolint:misspell
+		}),
+	)
+
+	// Put data into instance
+	graph.SetXAxis(xAxis)
+
+	prStackOps := []charts.SeriesOpts{
+		charts.WithAreaStyleOpts(opts.AreaStyle{Opacity: 0.8}),
+		charts.WithLineChartOpts(opts.LineChart{Stack: "prs"}),
+		charts.WithLineStyleOpts(opts.LineStyle{Width: 1, Opacity: 0.9}),
+	}
+
+	var series *charts.Line
+	for group, line := range lineData {
+		series = graph.AddSeries(group, line)
+	}
+	series.SetSeriesOptions(prStackOps...)
+
+	// Where the magic happens
+	file, err = os.Create(outPath + "/daily-prs-open-by-authors.html")
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+
+	err = graph.Render(file)
+	if err != nil {
+		return fmt.Errorf("failed to render graph graph: %w", err)
+	}
+
+	return nil
+}
+
 type WeekStatsPRs struct {
 	Total           int
 	OpenDays        float64
