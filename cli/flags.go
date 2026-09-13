@@ -50,18 +50,13 @@ func configureFlags(root *cobra.Command) error {
 }
 
 func GetFlags() FlagData {
-	owner := viper.GetString("owner")
-	if owner == "" {
-		owner = viper.GetString("org")
-	}
-
-	// for some reason we don't get a proper array back from viper for authors so fix it liek this for now TODO FIX
+	// for some reason we don't get a proper array back from viper for authors so fix it like this for now TODO FIX
 	authors := viper.GetStringSlice("authors")
 	if len(authors) != 0 {
 		authors = strings.Split(authors[0], ",")
 	}
 
-	// for some reason we don't get a proper array back from viper for authors so fix it liek this for now TODO FIX
+	// for some reason we don't get a proper array back from viper for authors so fix it like this for now TODO FIX
 	repos := viper.GetStringSlice("repos")
 	if len(repos) != 0 {
 		repos = strings.Split(repos[0], ",")

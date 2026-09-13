@@ -58,7 +58,7 @@ func GraphsRepoOpenedPRsDaily(cache *cache.Cache, outPath string, from, to time.
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	csv := csv.NewWriter(file)
 	defer csv.Flush()
@@ -82,7 +82,7 @@ func GraphsRepoOpenedPRsDaily(cache *cache.Cache, outPath string, from, to time.
 		charts.WithTitleOpts(opts.Title{
 			Title:    strings.Join(repoShortNames, ",") + " PRs Opened (daily)",
 			Subtitle: "By Current Status: merged, closed, open",
-			Left:     "center", // nolint:misspell
+			Left:     "center",
 		}),
 
 		charts.WithXAxisOpts(opts.XAxis{
@@ -102,7 +102,7 @@ func GraphsRepoOpenedPRsDaily(cache *cache.Cache, outPath string, from, to time.
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
-			Left: "center", // nolint:misspell
+			Left: "center",
 		}),
 	)
 
@@ -193,7 +193,7 @@ func GraphRepoTotalPRsDaily(cache *cache.Cache, outPath string, from, to time.Ti
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	csv := csv.NewWriter(file)
 	defer csv.Flush()
@@ -217,7 +217,7 @@ func GraphRepoTotalPRsDaily(cache *cache.Cache, outPath string, from, to time.Ti
 		charts.WithTitleOpts(opts.Title{
 			Title:    strings.Join(repoShortNames, ",") + " Total PRs (daily)",
 			Subtitle: "By Current Status: merged, closed, open",
-			Left:     "center", // nolint:misspell
+			Left:     "center",
 		}),
 
 		charts.WithXAxisOpts(opts.XAxis{
@@ -237,7 +237,7 @@ func GraphRepoTotalPRsDaily(cache *cache.Cache, outPath string, from, to time.Ti
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
-			Left: "center", // nolint:misspell
+			Left: "center",
 		}),
 	)
 
@@ -342,12 +342,12 @@ func GraphRepoOpenPRsDaily(theCache *cache.Cache, outPath string, from, to time.
 			for ; eventIndex < len(eventDates) && eventDates[eventIndex].Before(day.AddDate(0, 0, 1)); eventIndex++ {
 				e := eventMap[eventDates[eventIndex]]
 
-				// nolint: gocritic
+				//nolint:gocritic
 				if e.Event == "milestoned" && e.Milestone == "Blocked" {
 					state = "blocked"
 				} else if e.Event == "milestoned" && e.Milestone != "Blocked" && state == "blocked" {
 					state = "waiting"
-				} else if e.Event == "labeled" && e.Label == "waiting-response" { // nolint:misspell
+				} else if e.Event == "labeled" && e.Label == "waiting-response" {
 					state = "open"
 				} else if e.Event == "unlabeled" && e.Label == "waiting-response" {
 					state = "waiting"
@@ -444,7 +444,7 @@ func GraphRepoOpenPRsDaily(theCache *cache.Cache, outPath string, from, to time.
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	csv := csv.NewWriter(file)
 	defer csv.Flush()
@@ -468,7 +468,7 @@ func GraphRepoOpenPRsDaily(theCache *cache.Cache, outPath string, from, to time.
 		charts.WithTitleOpts(opts.Title{
 			Title:    strings.Join(repoShortNames, ",") + " PRs Open (daily)",
 			Subtitle: "By State: open, waiting, waiting (over 14 days), blocked, approved",
-			Left:     "center", // nolint:misspell
+			Left:     "center",
 		}),
 
 		charts.WithXAxisOpts(opts.XAxis{
@@ -493,7 +493,7 @@ func GraphRepoOpenPRsDaily(theCache *cache.Cache, outPath string, from, to time.
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
-			Left: "center", // nolint:misspell
+			Left: "center",
 		}),
 	)
 
@@ -598,7 +598,7 @@ func GraphRepoOpenPRsByAuthorsDaily(theCache *cache.Cache, outPath string, from,
 
 			d := dates[k]
 			d.Total++
-			d.ByGroup[group] = d.ByGroup[group] + 1
+			d.ByGroup[group]++
 			dates[k] = d
 
 			// check is here so PRs open for less than 1 day are counted
@@ -655,7 +655,7 @@ func GraphRepoOpenPRsByAuthorsDaily(theCache *cache.Cache, outPath string, from,
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	csv := csv.NewWriter(file)
 	defer csv.Flush()
@@ -679,7 +679,7 @@ func GraphRepoOpenPRsByAuthorsDaily(theCache *cache.Cache, outPath string, from,
 		charts.WithTitleOpts(opts.Title{
 			Title:    strings.Join(repoShortNames, ",") + " PRs Open (daily)",
 			Subtitle: "By State: open, waiting, waiting (over 14 days), blocked, approved",
-			Left:     "center", // nolint:misspell
+			Left:     "center",
 		}),
 
 		charts.WithXAxisOpts(opts.XAxis{
@@ -704,7 +704,7 @@ func GraphRepoOpenPRsByAuthorsDaily(theCache *cache.Cache, outPath string, from,
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
-			Left: "center", // nolint:misspell
+			Left: "center",
 		}),
 	)
 
@@ -805,7 +805,7 @@ func GraphRepoWeeklyPrStats(repo string, c *cache.Cache, outPath string, from, t
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	csv := csv.NewWriter(file)
 	defer csv.Flush()
@@ -824,7 +824,7 @@ func GraphRepoWeeklyPrStats(repo string, c *cache.Cache, outPath string, from, t
 		charts.WithTitleOpts(opts.Title{
 			Title:    "PRs Open (daily)",
 			Subtitle: "By State: open, waiting, waiting (over 14 days), blocked, approved",
-			Left:     "center", // nolint:misspell
+			Left:     "center",
 		}),
 
 		charts.WithXAxisOpts(opts.XAxis{
@@ -849,7 +849,7 @@ func GraphRepoWeeklyPrStats(repo string, c *cache.Cache, outPath string, from, t
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
-			Left: "center", // nolint:misspell
+			Left: "center",
 		}),
 	)
 

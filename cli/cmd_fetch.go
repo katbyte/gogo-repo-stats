@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v45/github"
-	c "github.com/gookit/color" // nolint: misspell
+	c "github.com/gookit/color"
 	"github.com/katbyte/gogo-repo-stats/lib/cache"
 	"github.com/katbyte/gogo-repo-stats/lib/gh"
 	"github.com/spf13/cobra"
@@ -18,7 +18,7 @@ func CmdFetch(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("opening cache %s: %w", f.CachePath, err)
 	}
-	defer cache.DB.Close()
+	defer func() { _ = cache.DB.Close() }()
 
 	full := false // todo full get everything mode
 
@@ -75,9 +75,7 @@ func CmdFetch(_ *cobra.Command, _ []string) error {
 				gh, ctx := r.NewClient()
 				pr, _, err := gh.PullRequests.Get(ctx, r.Owner, r.Name, n)
 				if err != nil {
-
 					return fmt.Errorf("failed to get pr from GH %s/%s/%d: %w", r.Owner, r.Name, n, err)
-
 				}
 
 				err = cache.UpsertRepoPRFromGH(repo, pr)
@@ -138,7 +136,7 @@ func CmdFetch(_ *cobra.Command, _ []string) error {
 				// check cache
 				cissue, err := cache.GetIssue(repo, n)
 				if err != nil {
-					c.Printf(" <red>issues[%d] unable to look up in cache</>, skipping: %s\n\n", err)
+					c.Printf(" <red>issues[%d] unable to look up in cache</>, skipping: %s\n\n", n, err)
 				}
 
 				// if cached && closed (in cache) we have all relevant data
@@ -166,9 +164,7 @@ func CmdFetch(_ *cobra.Command, _ []string) error {
 				gh, ctx := r.NewClient()
 				issue, _, err := gh.Issues.Get(ctx, r.Owner, r.Name, n)
 				if err != nil {
-
 					return fmt.Errorf("failed to get issue from GH %s/%s/%d: %w", r.Owner, r.Name, n, err)
-
 				}
 
 				err = cache.UpsertRepoIssueFromGH(repo, issue)

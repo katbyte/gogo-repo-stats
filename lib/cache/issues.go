@@ -56,7 +56,7 @@ func (cache Cache) UpsertRepoIssueFromGH(repo string, issue *github.Issue) error
 	if err != nil {
 		return fmt.Errorf("failed to insert issue %s#%d: %w", repo, issue.GetNumber(), err)
 	}
-	stmt.Close()
+	_ = stmt.Close()
 
 	return nil
 }
@@ -78,7 +78,7 @@ func (cache Cache) UpsertIssueStats(repo string, number int, daysOpen, daysWaiti
 	if _, err = stmt.Exec(daysOpen, daysWaiting, daysToFirst, repo, number); err != nil {
 		return fmt.Errorf("failed to insert stats statement for pr %s#%d: %w", repo, number, err)
 	}
-	stmt.Close()
+	_ = stmt.Close()
 
 	return nil
 }
@@ -90,7 +90,7 @@ func (cache Cache) QueryForIssues(qfmt string, a ...any) (*[]Issue, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare issue query '%s': %w", q, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	err = rows.Err()
 	if err != nil {
@@ -131,7 +131,6 @@ func (cache Cache) GetIssue(repo string, number int) (*Issue, error) {
 	    repo = '%s' AND
 	    number='%d'
 	`, ColumnsIssues, repo, number)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for issue %d: %w", number, err)
 	}
@@ -175,12 +174,12 @@ func (cache Cache) GetRepoIssuesOpenForDateRange(repos []string, from, to time.T
 		repoClause = " AND repo in ('" + strings.Join(repos, "', '") + "')"
 	}
 
-	return cache.QueryForIssues(fmt.Sprintf(`
+	return cache.QueryForIssues(`
 		SELECT %[1]s  FROM issues
 		WHERE
 		    (created BETWEEN '%[2]s' AND '%[3]s' OR 
 		    closed BETWEEN '%[2]s' AND '%[3]s' OR
 		    closed < '1977-7-7')
 		    %[4]s
-	`, ColumnsIssues, from.Format("2006-01-02"), to.Format("2006-01-02"), repoClause))
+	`, ColumnsIssues, from.Format("2006-01-02"), to.Format("2006-01-02"), repoClause)
 }

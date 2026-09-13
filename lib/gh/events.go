@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/google/go-github/v45/github"
-	"github.com/katbyte/gogo-repo-stats/lib/clog"
+	"github.com/katbyte/go-kt/clog"
 )
 
 func (r Repo) ListAllIssueEvents(number int, cb func([]*github.Timeline, *github.Response) error) error {
@@ -20,9 +20,7 @@ func (r Repo) ListAllIssueEvents(number int, cb func([]*github.Timeline, *github
 		clog.Log.Debugf("Listing all events for %s/%s/%d (Page %d)...", r.Owner, r.Name, number, opts.Page)
 		events, resp, err := client.Issues.ListIssueTimeline(ctx, r.Owner, r.Name, number, opts)
 		if err != nil {
-
 			return fmt.Errorf("unable to list events for %s/%s/%d (Page %d): %w", r.Owner, r.Name, number, opts.Page, err)
-
 		}
 
 		if err = cb(events, resp); err != nil {

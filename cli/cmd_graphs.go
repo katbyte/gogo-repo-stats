@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	c "github.com/gookit/color" // nolint:misspell
+	c "github.com/gookit/color"
 	"github.com/katbyte/gogo-repo-stats/lib/cache"
 	"github.com/katbyte/gogo-repo-stats/lib/gh"
 	"github.com/spf13/cobra"
@@ -52,7 +52,7 @@ func CmdGraphs(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("opening cache %s: %w", f.CachePath, err)
 	}
-	defer cache.DB.Close()
+	defer func() { _ = cache.DB.Close() }()
 
 	c.Printf("Generating graphs for PRs from <white>%s</> to <white>%s</>...\n", from.Format("2006-01-02"), to.Format("2006-01-02"))
 	c.Printf("  for repos: <cyan>%s</>\n", strings.Join(f.Repos, "</>, <cyan>"))

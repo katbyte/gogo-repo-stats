@@ -76,26 +76,22 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 			d := dates[k]
 			d.Total++
 
-			if strings.Contains(issue.Labels, "question") {
-				// d.Question++
+			switch {
+			case strings.Contains(issue.Labels, "question"):
 				d.Question++
-			} else if strings.Contains(issue.Labels, "crash") {
-				// d.Crash++
+			case strings.Contains(issue.Labels, "crash"):
 				d.Bug++
-			} else if strings.Contains(issue.Labels, "bug") {
+			case strings.Contains(issue.Labels, "bug"):
 				d.Bug++
-			} else if strings.Contains(issue.Labels, "new-resource") {
-				// d.NewResource++
+			case strings.Contains(issue.Labels, "new-resource"):
 				d.Enhancement++
-			} else if strings.Contains(issue.Labels, "new-datasource") {
-				// d.NewDatasource++
+			case strings.Contains(issue.Labels, "new-datasource"):
 				d.Enhancement++
-			} else if strings.Contains(issue.Labels, "enhancement") {
+			case strings.Contains(issue.Labels, "enhancement"):
 				d.Enhancement++
-			} else if strings.Contains(issue.Labels, "documentation") {
-				// d.Documentation++
+			case strings.Contains(issue.Labels, "documentation"):
 				d.Enhancement++
-			} else {
+			default:
 				d.Other++
 			}
 
@@ -135,7 +131,8 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 			continue
 		}
 
-		data = append(data, []string{date,
+		data = append(data, []string{
+			date,
 			strconv.Itoa(day.Total),
 			strconv.Itoa(day.Other),
 			strconv.Itoa(day.Bug),
@@ -166,7 +163,6 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 				lineNewDatasource = append(lineNewDatasource, opts.LineData{Value: day.NewDatasource})
 				lineDocumentation = append(lineDocumentation, opts.LineData{Value: day.Documentation})
 		*/
-
 	}
 
 	// write raw data
@@ -174,7 +170,7 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	csv := csv.NewWriter(file)
 	defer csv.Flush()
@@ -198,7 +194,7 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 		charts.WithTitleOpts(opts.Title{
 			Title:    strings.Join(repoShortNames, ",") + " Issues Open (daily)",
 			Subtitle: "By Type: other, bug, enhancement, question",
-			Left:     "center", // nolint:misspell
+			Left:     "center",
 		}),
 
 		charts.WithXAxisOpts(opts.XAxis{
@@ -223,7 +219,7 @@ func GraphRepoOpenPRsDailyByType(cache *cache.Cache, outPath string, from, to ti
 		charts.WithLegendOpts(opts.Legend{
 			Show: true,
 			Top:  "bottom",
-			Left: "center", // nolint:misspell
+			Left: "center",
 		}),
 	)
 

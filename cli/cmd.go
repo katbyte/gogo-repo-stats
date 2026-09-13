@@ -1,9 +1,10 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/katbyte/gogo-repo-stats/version"
+	"github.com/katbyte/go-kt/version"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -13,7 +14,7 @@ func ValidateParams(params []string) func(cmd *cobra.Command, args []string) err
 	return func(cmd *cobra.Command, args []string) error {
 		for _, p := range params {
 			if viper.GetString(p) == "" {
-				return fmt.Errorf(p + " parameter can't be empty")
+				return errors.New(p + " parameter can't be empty")
 			}
 		}
 
@@ -22,7 +23,6 @@ func ValidateParams(params []string) func(cmd *cobra.Command, args []string) err
 }
 
 func Make(cmdName string) (*cobra.Command, error) {
-
 	// todo should this be a no-op to avoid accidentally triggering broken runs on malformed commands ?
 	root := &cobra.Command{
 		Use:           cmdName + " [command]",
@@ -78,7 +78,7 @@ func Make(cmdName string) (*cobra.Command, error) {
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(cmdName + " v" + version.Version + "-" + version.GitCommit)
+			fmt.Println(cmdName + " " + version.Version + "-" + version.GitCommit)
 		},
 	})
 

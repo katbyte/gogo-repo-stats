@@ -56,7 +56,7 @@ func (cache Cache) UpsertRepoPRFromGH(repo string, pr *github.PullRequest) error
 	if err != nil {
 		return fmt.Errorf("failed to insert pr %s#%d: %w", repo, pr.GetNumber(), err)
 	}
-	stmt.Close()
+	_ = stmt.Close()
 
 	return nil
 }
@@ -78,7 +78,7 @@ func (cache Cache) UpsertPRStats(repo string, number int, daysOpen, daysWaiting,
 	if _, err = stmt.Exec(daysOpen, daysWaiting, daysToFirst, repo, number); err != nil {
 		return fmt.Errorf("failed to insert stats statement for pr %s#%d: %w", repo, number, err)
 	}
-	stmt.Close()
+	_ = stmt.Close()
 
 	return nil
 }
@@ -90,7 +90,7 @@ func (cache Cache) QueryForPRs(qfmt string, a ...any) (*[]PR, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare query '%s': %w", q, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	err = rows.Err()
 	if err != nil {
@@ -134,7 +134,6 @@ func (cache Cache) GetPR(repo string, number int) (*PR, error) {
 	    repo = '%s' AND
 	    number='%d'
 	`, ColumnsPR, repo, number)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for pr %d: %w", number, err)
 	}
@@ -192,12 +191,12 @@ func (cache Cache) GetRepoPRsOpenForDateRange(repos []string, from, to time.Time
 		repoClause = " AND repo in ('" + strings.Join(repos, "', '") + "')"
 	}
 
-	return cache.QueryForPRs(fmt.Sprintf(`
+	return cache.QueryForPRs(`
 		SELECT %[1]s  FROM prs
 		WHERE
 		    (created BETWEEN '%[2]s' AND '%[3]s' OR 
 		    closed BETWEEN '%[2]s' AND '%[3]s' OR 
 		    closed < '1977-7-7')
 		    %[4]s
-	`, ColumnsPR, from.Format("2006-01-02"), to.Format("2006-01-02"), repoClause))
+	`, ColumnsPR, from.Format("2006-01-02"), to.Format("2006-01-02"), repoClause)
 }

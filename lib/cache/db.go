@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	c "github.com/gookit/color" // nolint:misspell
+	c "github.com/gookit/color"
 )
 
 type Cache struct {

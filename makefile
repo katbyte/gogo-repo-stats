@@ -1,4 +1,5 @@
 GIT_COMMIT=$(shell git describe --always --long --dirty)
+GIT_VERSION=$(shell git describe --tags --dirty 2>/dev/null | sed 's/-\([0-9]*\)-g/+\1@g/' || echo dev)
 GOLANGCI_LINT_VERSION?=v1.47.3
 TEST_TIMEOUT?=15m
 
@@ -33,7 +34,7 @@ test: build
 
 build:
 	@echo "==> building..."
-	go build -ldflags "-X github.com/katbyte/gogo-repo-stats/lib/version.GitCommit=${GIT_COMMIT}"
+	go build -ldflags "-X github.com/katbyte/go-kt/version.GitCommit=${GIT_COMMIT} -X github.com/katbyte/go-kt/version.Version=${GIT_VERSION}"
 
 goimports:
 	@echo "==> Fixing imports code with goimports..."
@@ -56,7 +57,7 @@ depscheck:
 
 install:
 	@echo "==> installing..."
-	go install -ldflags "-X github.com/katbyte/gogo-repo-stats/lib/version.GitCommit=${GIT_COMMIT}" .
+	go install -ldflags "-X github.com/katbyte/go-kt/version.GitCommit=${GIT_COMMIT} -X github.com/katbyte/go-kt/version.Version=${GIT_VERSION}" .
 
 check-all: build test lint depscheck
 

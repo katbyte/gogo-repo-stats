@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v45/github"
-	"github.com/katbyte/gogo-repo-stats/lib/clog"
+	"github.com/katbyte/go-kt/clog"
 )
 
 func (r Repo) IssueURL(pr int) string {
@@ -25,16 +25,14 @@ func (r Repo) ListAllIssues(state string, cb func([]*github.Issue, *github.Respo
 	}
 
 	for {
-		clog.Log.Debugf("Listing all issues for %s/%s (Page %d)...", r.Owner, r.Name, opts.ListOptions.Page)
+		clog.Log.Debugf("Listing all issues for %s/%s (Page %d)...", r.Owner, r.Name, opts.Page)
 		prs, resp, err := client.Issues.ListByRepo(ctx, r.Owner, r.Name, opts)
 		if err != nil {
-
-			return fmt.Errorf("unable to list issues for %s/%s (Page %d): %w", r.Owner, r.Name, opts.ListOptions.Page, err)
-
+			return fmt.Errorf("unable to list issues for %s/%s (Page %d): %w", r.Owner, r.Name, opts.Page, err)
 		}
 
 		if err = cb(prs, resp); err != nil {
-			return fmt.Errorf("callback failed for %s/%s (Page %d): %w", r.Owner, r.Name, opts.ListOptions.Page, err)
+			return fmt.Errorf("callback failed for %s/%s (Page %d): %w", r.Owner, r.Name, opts.Page, err)
 		}
 
 		if resp.NextPage == 0 {

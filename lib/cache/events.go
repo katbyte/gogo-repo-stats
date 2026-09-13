@@ -82,7 +82,7 @@ func (cache Cache) UpsertEvent(repo string, pr int, event *github.Timeline) erro
 	if err != nil {
 		return fmt.Errorf("failed to insert event %d/%s: %w", pr, event.GetURL(), err)
 	}
-	stmt.Close()
+	_ = stmt.Close()
 
 	return nil
 }
@@ -98,7 +98,7 @@ func (cache Cache) GetEventsFor(repo string, number int) ([]Event, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query events for pr %d: %w", number, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	err = rows.Err()
 	if err != nil {

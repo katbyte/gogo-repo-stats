@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v45/github"
-	"github.com/katbyte/gogo-repo-stats/lib/clog"
+	"github.com/katbyte/go-kt/clog"
 )
 
 func (r Repo) GetLabelsFor(number int) (*[]string, error) {
